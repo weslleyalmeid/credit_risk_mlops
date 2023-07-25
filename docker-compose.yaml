@@ -1,0 +1,89 @@
+version: '3'
+services:
+
+  s3:
+    image: quay.io/minio/minio:RELEASE.2022-02-18T01-50-10Z
+    container_name: s3_minio
+    restart: unless-stopped
+    volumes:
+      - ./data_minio:/data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
+      MINIO_ADDRESS: ':9000'
+      MINIO_CONSOLE_ADDRESS: ':9001'
+    command: minio server /data
+    networks:
+      - internal
+      - public
+
+  db:
+    image: postgres
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+    ports:
+      - "5432:5432"
+    networks:
+      - internal
+        
+  create_s3_buckets:
+    image: minio/mc
+    depends_on:
+      - "s3"
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set minio http://s3:9000 '${AWS_ACCESS_KEY_ID}' '${AWS_SECRET_ACCESS_KEY}') do echo '...waiting...' && sleep 1; done;
+      /usr/bin/mc mb minio/${AWS_BUCKET_NAME};
+      exit 0;
+      "
+
+  mlflow:
+    container_name: tracker_mlflow
+    image: tracker_ml
+    restart: unless-stopped
+    build:
+      context: ./images/mlflow
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    links:
+      - db
+    networks:
+      - public
+      - internal
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_REGION}
+      - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
+    entrypoint: "mlflow server \
+                --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE} \
+                --default-artifact-root=s3://${AWS_BUCKET_NAME}/ \
+                --artifacts-destination=s3://${AWS_BUCKET_NAME}/ \
+                --host=0.0.0.0"
+    depends_on:
+      wait-for-db:
+        condition: service_completed_successfully
+
+
+  wait-for-db:
+    image: atkrad/wait4x
+    depends_on:
+      - db
+    command: tcp db:5432 -t 90s -i 250ms
+    networks:
+      - internal
+
+
+networks:
+  internal:
+  public:
+    driver: bridge
+
