@@ -4,9 +4,14 @@
 ### Personal includes
 
 data_minio/
+
 data/
 !/src/data
+
 .secrets
+
+notebooks/
+!notebooks/*.ipynb
 
 
 

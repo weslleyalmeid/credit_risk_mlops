@@ -3,51 +3,92 @@ import pickle
 import click
 import mlflow
 
+from mlflow.entities import ViewType
+from mlflow.tracking import MlflowClient
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
-mlflow.set_experiment("nyc-taxi-experiment")
+import logging
+logger = logging.getLogger(__name__ + 'train_model')
 
-def load_pickle(filename: str):
+
+HPO_EXPERIMENT_NAME = "random-forest-hyperopt"
+EXPERIMENT_NAME = "random-forest-best-models"
+RF_PARAMS = ['max_depth', 'n_estimators', 'min_samples_split', 'min_samples_leaf', 'random_state', 'n_jobs']
+
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_experiment(EXPERIMENT_NAME)
+mlflow.sklearn.autolog()
+
+
+def load_pickle(filename):
     with open(filename, "rb") as f_in:
         return pickle.load(f_in)
+
+
+def train_and_log_model(data_path, params):
+    X_train, y_train = load_pickle(os.path.join(data_path, "train.pkl"))
+    X_val, y_val = load_pickle(os.path.join(data_path, "val.pkl"))
+    X_test, y_test = load_pickle(os.path.join(data_path, "test.pkl"))
+
+    with mlflow.start_run():
+        for param in RF_PARAMS:
+            params[param] = int(params[param])
+
+
+        rf = RandomForestRegressor(**params)
+        rf.fit(X_train, y_train)
+
+        # Evaluate model on the validation and test sets
+        val_rmse = mean_squared_error(y_val, rf.predict(X_val), squared=False)
+        mlflow.log_metric("val_rmse", val_rmse)
+        test_rmse = mean_squared_error(y_test, rf.predict(X_test), squared=False)
+        mlflow.log_metric("test_rmse", test_rmse)
 
 
 @click.command()
 @click.option(
     "--data_path",
     default="./output",
-    help="Location where the processed data was saved"
+    help="Location where the processed NYC taxi trip data was saved"
 )
-def run_train(data_path: str):
-    mlflow.set_tracking_uri("sqlite:///mlflow.db")
-    mlflow.set_experiment("nyc-taxi-experiment")
-    model_name = 'random'
-    name_registry = f'model_{model_name}'
+@click.option(
+    "--top_n",
+    default=5,
+    type=int,
+    help="Number of top models that need to be evaluated to decide which one to promote"
+)
+def run_register_model(data_path: str, top_n: int):
+    client = MlflowClient()
 
-    with mlflow.start_run():
-        mlflow.set_tag('developer', 'weslley')
-        
-        mlflow.sklearn.autolog(registered_model_name=name_registry)
-        X_train, y_train = load_pickle(os.path.join(data_path, "train.pkl"))
-        X_val, y_val = load_pickle(os.path.join(data_path, "val.pkl"))
+    # Retrieve the top_n model runs and log the models
+    experiment = client.get_experiment_by_name(HPO_EXPERIMENT_NAME)
+    runs = client.search_runs(
+        experiment_ids=experiment.experiment_id,
+        run_view_type=ViewType.ACTIVE_ONLY,
+        max_results=top_n,
+        order_by=["metrics.rmse ASC"]
+    )
 
-        rf = RandomForestRegressor(max_depth=10, random_state=0)
-        rf.fit(X_train, y_train)
-        y_pred = rf.predict(X_val)
+    for run in runs:
+        train_and_log_model(data_path=data_path, params=run.data.params)
 
-        rmse = mean_squared_error(y_val, y_pred, squared=False)
-        mlflow.log_metric("rmse", rmse)
+    # Select the model with the lowest test RMSE
+    experiment = client.get_experiment_by_name(EXPERIMENT_NAME)
 
-        # signature = infer_signature(X_val, y_val)
+    best_run = client.search_runs(
+        experiment_ids=experiment.experiment_id,
+        run_view_type=ViewType.ACTIVE_ONLY,
+        max_results=1,
+        order_by=["metrics.test_rmse ASC"]
+    )[0]
+    
+    # Register the best model
+    RUN_ID = best_run.info.run_id
+    mlflow.register_model(
+        f"runs:/{RUN_ID}/model", "sk-learn-random-forest-best"
+    )
 
-        # mlflow.sklearn.log_model(
-        #     sk_model=rf,
-        #     artifact_path='models_pickle',
-        #     registered_model_name=name_registry,
-        #     signature=signature
-        # )
 
 if __name__ == '__main__':
-    run_train()
+    run_register_model()

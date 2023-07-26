@@ -88,13 +88,10 @@ If you're not certain about some tools, ask in Slack.
 
 ## Initialization
 
-### Run minIO
+### Storage with MinIO
 
 run docker compose for get up minIO, access in *localhost:9001*
 ```sh
-docker compose up -d minio
-
-
 docker-compose --env-file .secrets  up -d
 docker-compose --env-file .secrets  down
 ```
@@ -107,37 +104,17 @@ aws s3 mb \
     --profile minio_user
 ```
 
+### Tracking and Registry with MLflow
+
+[Scenario 5](https://mlflow.org/docs/latest/tracking.html#scenario-5-mlflow-tracking-server-enabled-with-proxied-artifact-storage-access) MLflow Tracking Server enabled with proxied artifact storage access: 
+```sh
+# <dialect>+<driver>://<username>:<password>@<host>:<port>/<database>
 mlflow server \
-    --backend-store-uri=sqlite:///mlflow.db \
-    --default-artifact-root=s3://mlflow-weslley/
-
-
-mlflow server \
-    --backend-store-uri=postgresql+psycopg2://postgres:postgres@postgres:5432/mlflow_db \
-    --default-artifact-root=s3://mlflow-weslley/
-
-
-entrypoint: mlflow server \
-            --backend-store-uri=postgresql+psycopg2://postgres:postgres123@localhost:5432/mlflow_db \
-            --default-artifact-root=s3://mlflow-weslley/ \
-            --artifacts-destination=s3://mlflow-weslley/ \
-            --host=0.0.0.0
-
-
-mlflow server \
-  --backend-store-uri postgresql+psycopg2://postgres:postgres@localhost:5432/mlflow_db \
-  --artifacts-destination s3://mlflow-weslley/ \
-  --host remote_host
-
-
-import psycopg2
-
-conn = psycopg2.connect("dbname='mlflow_db' user='postgres' host='db' password='postgres123'")
-
-<dialect>+<driver>://<username>:<password>@<host>:<port>/<database>
-
-
-postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE}
+    --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE} \
+    --default-artifact-root=s3://${AWS_BUCKET_NAME}/ \
+    --artifacts-destination=s3://${AWS_BUCKET_NAME}/ \
+    --host=0.0.0.0
+```
 
 
 
