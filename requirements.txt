@@ -6,3 +6,4 @@ xgboost==1.7.6
 catboost==1.2
 lightgbm==4.0.0
 scikit-learn==1.2.2
+boto3==1.28.11

@@ -44,9 +44,9 @@ services:
       exit 0;
       "
 
-  mlflow:
+  tracker_mlflow:
     container_name: tracker_mlflow
-    image: tracker_ml
+    image: tracker_mlflow
     restart: unless-stopped
     build:
       context: ./images/mlflow
