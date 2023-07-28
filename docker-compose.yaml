@@ -80,6 +80,20 @@ services:
     command: tcp db:5432 -t 90s -i 250ms
     networks:
       - internal
+  
+  
+  grafana:
+    image: grafana/grafana
+    user: "472"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/config/grafana_datasources.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+      - ./monitoring/config/grafana_dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./monitoring/dashboards:/opt/grafana/dashboards
+    networks:
+      - public
+    restart: always
 
 
 networks:
