@@ -11,7 +11,10 @@ data/
 .secrets
 
 notebooks/
-!notebooks/*.ipynb
+!notebooks/*.ipynb+
+
+
+orchestration/logs
 
 
 
