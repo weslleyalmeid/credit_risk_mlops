@@ -7,7 +7,7 @@ import boto3
 import mlflow
 
 import logging
-logger = logging.getLogger(__name__ + 'predict_model')
+log = logging.getLogger(__name__ + 'predict_model')
 
 
 def get_model_location(run_id, mlflow_server=False):

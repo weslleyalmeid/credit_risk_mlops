@@ -9,6 +9,8 @@ click = "*"
 mlflow = "*"
 boto3 = "*"
 evidently = "*"
+optuna = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

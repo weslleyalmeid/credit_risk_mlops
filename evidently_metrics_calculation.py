@@ -9,7 +9,7 @@ import io
 import psycopg
 import joblib
 
-from prefect import task, flow
+# from prefect import task, flow
 
 from evidently.report import Report
 from evidently import ColumnMapping
@@ -52,7 +52,7 @@ report = Report(metrics = [
     DatasetMissingValuesMetric()
 ])
 
-@task
+# @task
 def prep_db():
 	with psycopg.connect("host=localhost port=5432 user=postgres password=example", autocommit=True) as conn:
 		res = conn.execute("SELECT 1 FROM pg_database WHERE datname='test'")
@@ -61,7 +61,7 @@ def prep_db():
 		with psycopg.connect("host=localhost port=5432 dbname=test user=postgres password=example") as conn:
 			conn.execute(create_table_statement)
 
-@task
+# @task
 def calculate_metrics_postgresql(curr, i):
 	current_data = raw_data[(raw_data.lpep_pickup_datetime >= (begin + datetime.timedelta(i))) &
 		(raw_data.lpep_pickup_datetime < (begin + datetime.timedelta(i + 1)))]
@@ -83,7 +83,7 @@ def calculate_metrics_postgresql(curr, i):
 		(begin + datetime.timedelta(i), prediction_drift, num_drifted_columns, share_missing_values)
 	)
 
-@flow
+# @flow
 def batch_monitoring_backfill():
 	prep_db()
 	last_send = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -99,6 +99,7 @@ def batch_monitoring_backfill():
 			while last_send < new_send:
 				last_send = last_send + datetime.timedelta(seconds=10)
 			logging.info("data sent")
+
 
 if __name__ == '__main__':
 	batch_monitoring_backfill()

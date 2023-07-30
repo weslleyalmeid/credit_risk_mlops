@@ -86,6 +86,25 @@ If you're not certain about some tools, ask in Slack.
 ## Problem description
 
 
+## Implementation plan:
+
+- [] cleanup data
+- [] exploratory data analysis
+- [x] train model
+- [] ml pipeline for hyperparameter tuning
+- [] model registry
+- [] ML-serve API server
+- [] ML-serve Stream server (optional)
+- [] tests (partial)
+- [] linters
+- [] Makefile and CI/CD
+- [] deploy to cloud
+- [] logging and monitoring
+- [] batch reporting
+- [] docker and docker-compose everything
+- [] reporting server
+
+
 ## Initialization
 
 ### Storage with MinIO
