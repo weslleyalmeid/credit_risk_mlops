@@ -88,3 +88,53 @@ Did you take notes? Add them here:
 * [Week2: Experiment tracking notes and notebook by Bhagabat](https://github.com/BPrasad123/MLOps_Zoomcamp/tree/main/Week2)
 * [Notes of ML-flow by Jaime Cabrera-Salcedo](https://github.com/jaimeh94/MLOps-Zoomcamp/tree/main/02-experiment-tracking)
 * Send a PR, add your notes above this line
+
+
+
+```sh
+entrypoint: "mlflow server \
+            --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE} \
+            --default-artifact-root=s3://${AWS_BUCKET_NAME} \
+            --artifacts-destination=s3://${AWS_BUCKET_NAME} \
+            --host=0.0.0.0"
+```
+
+```sh
+entrypoint: "mlflow server \
+            --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE} \
+            --default-artifact-root=s3://${AWS_BUCKET_NAME} \
+            --host=0.0.0.0"
+```
+
+
+```sh
+entrypoint: "mlflow server \
+            --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE} \
+            --default-artifact-root=s3://${AWS_BUCKET_NAME} \
+            --artifacts-destination=s3://${AWS_BUCKET_NAME} \
+            --serve-artifacts \
+            --host=0.0.0.0"
+```
+
+
+
+```sh
+entrypoint: "mlflow server \
+            --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE} \
+            --artifacts-destination=s3://${AWS_BUCKET_NAME} \
+            --host=0.0.0.0"
+```
+
+```sh
+mlflow server \
+            --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DATABASE} \
+            --default-artifact-root=s3://${AWS_BUCKET_NAME} \
+            --artifacts-destination=s3://${AWS_BUCKET_NAME} \
+            --host=0.0.0.0
+
+
+mlflow server \
+            --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DATABASE} \
+            --artifacts-destination=s3://${AWS_BUCKET_NAME} \
+            --host=0.0.0.0
+```

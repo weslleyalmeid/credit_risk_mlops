@@ -88,11 +88,11 @@ If you're not certain about some tools, ask in Slack.
 
 ## Implementation plan:
 
-- [] cleanup data
-- [] exploratory data analysis
+- [x] cleanup data
+- [x] exploratory data analysis
 - [x] train model
-- [] ml pipeline for hyperparameter tuning
-- [] model registry
+- [x] ml pipeline for hyperparameter tuning
+- [x] model registry
 - [] ML-serve API server
 - [] ML-serve Stream server (optional)
 - [] tests (partial)
@@ -134,7 +134,3 @@ mlflow server \
     --artifacts-destination=s3://${AWS_BUCKET_NAME}/ \
     --host=0.0.0.0
 ```
-
-
-
-

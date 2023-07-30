@@ -5,7 +5,7 @@ from logging import DEBUG, INFO                     # levels
 from logging import FileHandler, StreamHandler      # Mostrar log no terminal e pode salver em N arquivos
 
 from data_processing.preprocess import run_data_prep
-from models.train_model import run_optimization
+from models.train_model import run_optimization, run_register_model
 from dotenv import load_dotenv
 import os
 import boto3
@@ -59,7 +59,19 @@ log = logging.getLogger(__name__)
     required=True,
     help='Output location where the artifacts and data will saved'
 )
-def main(in_cloud, out_cloud):
+@click.option(
+    '--preprocess',
+    default=False,
+    required=True,
+    help='Execute pre-process in database'
+)
+@click.option(
+    '--hpo',
+    default=True,
+    required=True,
+    help='Hyperparameter optimization'
+)
+def main(in_cloud, out_cloud, preprocess, hpo):
     log.info('Program started')
 
     log.info('Set directories and paths')
@@ -77,7 +89,7 @@ def main(in_cloud, out_cloud):
         OUT_PIPE_PATH = os.path.join(ROOT_DIR, 'output', 'pipeline', os.environ['AWS_NAME_PROJECT'])
 
     log.info('Run data pre-process')
-    if False:
+    if preprocess:
         run_data_prep(
             in_data_path=RAW_PATH,
             out_data_path=OUT_DATA_PATH,
@@ -90,7 +102,11 @@ def main(in_cloud, out_cloud):
 
     log.info('Run optimization model')
 
-    run_optimization(OUT_DATA_PATH, 5, s3_client, OUT_DATA_PATH, in_cloud, os.environ['AWS_NAME_PROJECT'])
+    if hpo:
+        run_optimization(OUT_DATA_PATH, 10, s3_client, OUT_DATA_PATH, in_cloud, os.environ['AWS_NAME_PROJECT'])
+
+    log.info('Registry model')
+    run_register_model(OUT_DATA_PATH, 5, os.environ['AWS_NAME_PROJECT'], s3_client, in_cloud)
 
     log.info('Program finished')
 

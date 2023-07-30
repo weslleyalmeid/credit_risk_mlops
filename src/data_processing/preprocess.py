@@ -121,16 +121,15 @@ def run_data_prep(in_data_path: str, out_data_path: str, out_pipe_path:str, in_c
         input_file = get_paths(client, in_data_path, in_cloud, dataset)
         df = read_dataframe(input_file)
 
+    log.info('Pre-process data')
+    df = preprocess(df)
+    
     # Extract the target
     target = 'loan_status'
     X = df.drop([target], axis=1)
     Y = df[target]
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
   
-    log.info('Pre-process data')
-    X_train = preprocess(X_train)
-    X_test = preprocess(X_test)
-
     ohe_colums = [
         'cb_person_default_on_file', 'loan_grade', 'person_home_ownership',
         'loan_intent', 'income_group', 'age_group', 'loan_amount_group'
@@ -160,7 +159,7 @@ def run_data_prep(in_data_path: str, out_data_path: str, out_pipe_path:str, in_c
 
     log.info('Save artifacts')
     if out_cloud:
-        pipeline_pkl = pickle.dumps(pipeline_transform) 
+        pipeline_pkl = pickle.dumps(pipeline_transform)
         train_pkl = pickle.dumps((X_train, y_train)) 
         test_pkl = pickle.dumps((X_test, y_test))
         save_results(client, pipeline_pkl, 'pipeline', os.path.join(out_data_path, 'pipeline.pkl'))

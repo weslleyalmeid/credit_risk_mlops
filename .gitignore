@@ -3,19 +3,19 @@
 
 ### Personal includes
 
+temp/
+catboost_info/
 data_minio/
 
 data/
 !/src/data
-
+output/
 .secrets
 
 notebooks/
 !notebooks/*.ipynb+
 
-
 orchestration/logs
-
 
 
 ### JupyterNotebooks ###
