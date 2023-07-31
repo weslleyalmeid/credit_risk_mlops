@@ -5,9 +5,9 @@ import mlflow
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 import pandas as pd
+
+
 # load environments variables
-
-
 load_dotenv('.env')
 
 # setting credentials cloud
@@ -94,4 +94,4 @@ def predict_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0', port=9697)
+    app.run(debug=False, host='0.0.0.0', port=9696)

@@ -19,7 +19,6 @@ log = logging.getLogger(__name__ + 'pre_process')
 def get_paths(client, in_data_path, in_cloud, dataset):
     
     if in_cloud:
-
         bucket_name = 'database'
         file_path = in_data_path.split(bucket_name)[1]
         response = client.get_object(Bucket=bucket_name, Key=os.path.join(file_path, dataset))
@@ -77,7 +76,6 @@ def preprocess(df: pd.DataFrame):
     df['int_rate_to_loan_amt_ratio'] = df['loan_int_rate'] / df['loan_amnt']
 
     return df
-
 
 
 def feature_engineer(df: pd.DataFrame, pipeline_transformer: Pipeline, fit_enconder: bool):

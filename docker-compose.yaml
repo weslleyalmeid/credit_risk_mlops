@@ -96,6 +96,7 @@ services:
       - ./monitoring/dashboards:/opt/grafana/dashboards
     networks:
       - public
+      - internal
     restart: always
 
 

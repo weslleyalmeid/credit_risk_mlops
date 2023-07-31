@@ -23,7 +23,6 @@ def create_bucket_if_not_exists(bucket_name, key=None):
     
     try:
         if key:
-            import ipdb; ipdb.set_trace()
             response = list(s3_client.list_objects(Bucket=bucket_name, Prefix=f'{key}/', MaxKeys=1))
             if 'Contents' in response:
                 print(f'{bucket_name}: Nested folder {key} already exists and is owned by you.') 
@@ -55,6 +54,15 @@ def start_project(name_project):
     create_bucket_if_not_exists('database', os.path.join(name_project, 'raw'))
     create_bucket_if_not_exists('database', os.path.join(name_project, 'interim'))
     create_bucket_if_not_exists('database', os.path.join(name_project, 'processed'))
+
+
+    create_bucket_if_not_exists('monitoring')
+    create_bucket_if_not_exists('monitoring', name_project)
+
+
+    create_bucket_if_not_exists('batch')
+    create_bucket_if_not_exists('batch', name_project)
+
 
 if __name__ == '__main__':
     start_project()

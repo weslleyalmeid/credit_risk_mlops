@@ -1,4 +1,4 @@
-POST http://localhost:9696/predict
+POST http://0.0.0.0:9696/predict
 Content-Type: application/json
 
 {
@@ -15,6 +15,8 @@ Content-Type: application/json
     "cb_person_cred_hist_length": 3
 }
 
+# POST http://localhost:9696/predict
+# POST http://0.0.0.0:9696/predict
 # loan_status: 1
 # GET https://api.example.com/users
 

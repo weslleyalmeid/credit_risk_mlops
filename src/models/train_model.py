@@ -11,6 +11,7 @@ from mlflow.models.signature import infer_signature
 from catboost import CatBoostClassifier
 from sklearn.metrics import f1_score, recall_score, precision_score
 from io import BytesIO
+from monitoring.monitoring import save_reference_monitoring
 
 import logging
 log = logging.getLogger(__name__ + 'train_model')
@@ -21,7 +22,7 @@ RF_PARAMS = [
 ]
 
 
-def get_paths(client, bucket_name, in_data_path, in_cloud, filename):
+def get_paths(s3_client, bucket_name, in_data_path, in_cloud, filename):
     if in_cloud:
         if bucket_name == 'pipeline':
             object_key = os.path.join(in_data_path, filename)
@@ -30,7 +31,7 @@ def get_paths(client, bucket_name, in_data_path, in_cloud, filename):
             object_key = os.path.join(file_path, filename)
 
         input_file = BytesIO()
-        client.download_fileobj(bucket_name, object_key, input_file)
+        s3_client.download_fileobj(bucket_name, object_key, input_file)
         input_file = input_file.getvalue()
         return input_file
     
@@ -126,71 +127,6 @@ def train_and_log_model(params, project_name, X_train, y_train, X_test, y_test, 
         mlflow.log_artifact(f'./temp/pipeline/{project_name}/pipeline.pkl', artifact_path='preprocess')
 
 
-# @click.command()
-# @click.option(
-#     '--data_path',
-#     default='./output',
-#     help='Location where the processed NYC taxi trip data was saved'
-# )
-# @click.option(
-#     '--top_n',
-#     default=5,
-#     type=int,
-#     help='Number of top models that need to be evaluated to decide which one to promote'
-# )
-def run_register_model(data_path: str, top_n: int, project_name, client, in_cloud):
-    ml_client = MlflowClient()
-
-    # Retrieve the top_n model runs and log the models
-    experiment = ml_client.get_experiment_by_name('hpo_' + project_name)
-    runs = ml_client.search_runs(
-        experiment_ids=experiment.experiment_id,
-        run_view_type=ViewType.ACTIVE_ONLY,
-        max_results=top_n,
-        filter_string = "metrics.precision > 0.85 and metrics.recall > 0.7",
-        order_by=['metrics.f1_score DESC']
-    )
-
-
-    pipeline_transform = get_paths(client, 'pipeline', data_path, in_cloud, 'pipeline.pkl')
-    train = get_paths(client, 'database', data_path, in_cloud, 'train.pkl')
-    test = get_paths(client, 'database', data_path, in_cloud, 'test.pkl')
-    
-    pipeline_transform = load_pickle(pipeline_transform)
-    X_train, y_train = load_pickle(train)
-    X_test, y_test = load_pickle(test)
-
-    for run in runs:
-        train_and_log_model(
-            params=run.data.params,
-            project_name=project_name,
-            X_train=X_train,
-            y_train=y_train,
-            X_test=X_test,
-            y_test=y_test,
-            pipeline_transform=pipeline_transform
-        )
-
-    experiment = ml_client.get_experiment_by_name(project_name)
-
-    # Select the model with the best metrics
-    best_run = ml_client.search_runs(
-        experiment_ids=experiment.experiment_id,
-        run_view_type=ViewType.ACTIVE_ONLY,
-        max_results=1,
-        filter_string = "metrics.precision > 0.85 and metrics.recall > 0.7",
-        order_by=['metrics.f1_score DESC']
-    )[0]
-
-    # Register the best model
-    RUN_ID = best_run.info.run_id
-    mlflow.register_model(
-        f'runs:/{RUN_ID}/model', project_name
-    )
-
-    model_set_stage(best_run, experiment)
-
-
 def upgrade_stage(mlf_client, experiment, best_run):
     
     precision = best_run.data.metrics['precision']
@@ -238,9 +174,66 @@ def model_set_stage(best_run, experiment):
             archive_existing_versions=True
         )
 
-        return 'Model in Production'
+        return 1
 
-    return 'Refused model in Production'
+    return 0
+
+
+def run_register_model(data_path: str, top_n: int, project_name, s3_client, in_cloud):
+    ml_client = MlflowClient()
+
+    # Retrieve the top_n model runs and log the models
+    experiment = ml_client.get_experiment_by_name('hpo_' + project_name)
+    runs = ml_client.search_runs(
+        experiment_ids=experiment.experiment_id,
+        run_view_type=ViewType.ACTIVE_ONLY,
+        max_results=top_n,
+        filter_string = "metrics.precision > 0.85 and metrics.recall > 0.7",
+        order_by=['metrics.f1_score DESC']
+    )
+
+    pipeline_transform = get_paths(s3_client, 'pipeline', data_path, in_cloud, 'pipeline.pkl')
+    train = get_paths(s3_client, 'database', data_path, in_cloud, 'train.pkl')
+    test = get_paths(s3_client, 'database', data_path, in_cloud, 'test.pkl')
+    
+    pipeline_transform = load_pickle(pipeline_transform)
+    X_train, y_train = load_pickle(train)
+    X_test, y_test = load_pickle(test)
+
+    for run in runs:
+        train_and_log_model(
+            params=run.data.params,
+            project_name=project_name,
+            X_train=X_train,
+            y_train=y_train,
+            X_test=X_test,
+            y_test=y_test,
+            pipeline_transform=pipeline_transform
+        )
+
+    experiment = ml_client.get_experiment_by_name(project_name)
+
+    # Select the model with the best metrics
+    best_run = ml_client.search_runs(
+        experiment_ids=experiment.experiment_id,
+        run_view_type=ViewType.ACTIVE_ONLY,
+        max_results=1,
+        filter_string = "metrics.precision > 0.85 and metrics.recall > 0.7",
+        order_by=['metrics.f1_score DESC']
+    )[0]
+
+    # Register the best model
+    RUN_ID = best_run.info.run_id
+    mlflow.register_model(
+        f'runs:/{RUN_ID}/model', project_name
+    )
+
+    set_ref_monitoring = model_set_stage(best_run, experiment)
+
+    # set new data referece for monitoring
+    if set_ref_monitoring:
+        save_reference_monitoring(project_name, s3_client, test, RUN_ID)
+
 
 if __name__ == '__main__':
     run_register_model()
