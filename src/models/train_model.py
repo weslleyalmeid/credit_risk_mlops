@@ -80,7 +80,7 @@ def run_optimization(data_path: str, num_trials: int, client, in_data_path, in_c
             mlflow.log_metric('f1_score', f1)
             mlflow.log_metric('precision', precision)
             mlflow.log_metric('recall', recall)
-            mlflow.catboost.log_model(clf, artifact_path='models')
+            mlflow.catboost.log_model(clf, artifact_path='model')
             return f1
 
     sampler = TPESampler(seed=42)
@@ -95,7 +95,7 @@ def train_and_log_model(params, project_name, X_train, y_train, X_test, y_test, 
  
     os.makedirs(f'./temp/pipeline/{project_name}', exist_ok=True)
     pipeline_pkl = pickle.dumps(pipeline_transform)
-    dump_pickle(pipeline_pkl, f'./temp/pipeline/{project_name}/pipeline.plk')
+    dump_pickle(pipeline_pkl, f'./temp/pipeline/{project_name}/pipeline.pkl')
 
     with mlflow.start_run():
         # maybe save pipeline with ohe and others pre-process
@@ -120,10 +120,10 @@ def train_and_log_model(params, project_name, X_train, y_train, X_test, y_test, 
         
         mlflow.catboost.log_model(
             cb_model=clf,
-            artifact_path='models',
+            artifact_path='model',
             signature=signature
         )
-        mlflow.log_artifact(f'./temp/pipeline/{project_name}/pipeline.plk', artifact_path='pipeline_transform')
+        mlflow.log_artifact(f'./temp/pipeline/{project_name}/pipeline.pkl', artifact_path='preprocess')
 
 
 # @click.command()
@@ -227,6 +227,7 @@ def model_set_stage(best_run, experiment):
     promoved = upgrade_stage(mlf_client, experiment, best_run)
 
     if promoved:
+
         version = mlf_client.get_latest_versions(name=experiment.name, stages=['None'])[-1]
         current_version = version.version
 
